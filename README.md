@@ -10,7 +10,7 @@ And Voila
  
 For now it counts the A button presses
 
-By using this you agree to [https://creativecommons.org/about/cclicenses/](https://creativecommons.org/licenses/by-nc/4.0/)
+By using this you agree to [CC by nc 4.0](https://creativecommons.org/licenses/by-nc/4.0/)
 
 #### Docs
 To put your own trigger to count radiation, replace the M5.BtnA.isPressed() with your own value in (line 112)
