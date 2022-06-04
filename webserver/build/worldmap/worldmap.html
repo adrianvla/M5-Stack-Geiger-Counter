@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geiger Counter</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.2.1/css/ol.css" type="text/css">
+
+    <style type="text/css">
+        html,
+        body,
+        #map {
+            width: 100%;
+            height: calc(100% - 50px);
+            margin: 0;
+        }
+        
+        body {
+            overflow: hidden;
+        }
+        
+        .header {
+            width: 100%;
+            height: 50px;
+            display: flex;
+            flex-direction: row;
+        }
+        
+        .item {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 10px;
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.2.1/build/ol.js"></script>
+
+
+
+</head>
+
+<body>
+
+    <div class="header">
+        <div class="item">
+            <a href="../">Offline Mode</a></div>
+        <div class="item">
+            <a href="givedata">Give Data to the WorldMap</a></div>
+    </div>
+    <div id="map" class="map"></div>
+
+
+
+    <!-- The core Firebase JS SDK is always required and must be listed first -->
+
+    <script src="https://www.gstatic.com/firebasejs/8.8.1/firebase-app.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/8.8.1/firebase-firestore.js"></script>
+
+    <!-- TODO: Add SDKs for Firebase products that you want to use
+
+     https://firebase.google.com/docs/web/setup#available-libraries -->
+
+    <script src="https://www.gstatic.com/firebasejs/8.8.1/firebase-analytics.js"></script>
+
+
+    <script>
+        // Your web app's Firebase configuration
+
+        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+
+        var firebaseConfig = {
+
+            apiKey: "AIzaSyAXm8Er6N-HIxOK-2g9B8G4vYlaNzE3DjU",
+
+            authDomain: "geiger-counter-15488.firebaseapp.com",
+
+            projectId: "geiger-counter-15488",
+
+            storageBucket: "geiger-counter-15488.appspot.com",
+
+            messagingSenderId: "295372024990",
+
+            appId: "1:295372024990:web:4d4dded6f4f2bf007adf8f",
+
+            measurementId: "G-8K3161TLLJ"
+
+        };
+
+
+
+        // Initialize Firebase
+        $(document).ready(function() {
+
+        });
+        firebase.initializeApp(firebaseConfig);
+
+        firebase.analytics();
+        var db = firebase.firestore();
+
+        db.collection("radiation").get().then((querySnapshot) => {
+            querySnapshot.forEach((doc) => {
+                console.log(`${doc.id} => ${doc.data()}`);
+
+                drawFeature(urntgToColor(doc.data().level), new ol.Feature({
+                    geometry: new ol.geom.Point(ol.proj.fromLonLat([doc.id.split('_')[1], doc.id.split('_')[0]]))
+                }), 5);
+            });
+            map = new ol.Map({
+                target: 'map',
+                layers: layers,
+                view: new ol.View({
+                    center: ol.proj.fromLonLat([0, 0]),
+                    zoom: 3
+                })
+            });
+        });
+
+        function rndColor() {
+            var rnd = Math.random;
+            var d = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 'A', 'B', 'C', 'D', 'E', 'F'];
+            var o = [];
+            for (var i = 0; i < 6; i++) {
+
+                o.push(d[Math.floor(rnd() * 16)]);
+            }
+            return '#' + o.join('');
+        }
+
+        function urntgToColor(urntg) {
+            var red = 125;
+            var green = 10;
+            if (urntg <= green) {
+                urntg = 0;
+            } else {
+                urntg = urntg - green;
+            }
+            var colornone = 125;
+            var hslc = colornone - ((urntg / (red - green)) * colornone);
+            return 'hsla(' + hslc + ', 100%, 50%, 0.5)';
+        }
+        var layers = [];
+        layers.push(new ol.layer.Tile({
+            source: new ol.source.OSM()
+        }));
+
+        const getRandomNumber = function(min, ref) {
+                return Math.random() * ref + min;
+            }
+            /*
+                    for (var i = 0; i < 100; i++) {
+
+                        drawFeature(rndColor() + '7F', new ol.Feature({
+                            geometry: new ol.geom.Point(ol.proj.fromLonLat([getRandomNumber(0, 50), getRandomNumber(0, 50)]))
+                        }), 5);
+                    } */
+
+        var vectorLayer;
+
+        function drawFeature(color, feature, radius) {
+
+
+
+            var features = [];
+            features.push(feature);
+
+
+            // create the source and layer for random features
+            const vectorSource = new ol.source.Vector({
+                features
+            });
+
+            vectorLayer = new ol.layer.Vector({
+                source: vectorSource,
+                style: new ol.style.Style({
+                    image: new ol.style.Circle({
+                        radius: radius,
+                        fill: new ol.style.Fill({
+                            color: color
+                        })
+                    })
+                })
+            });
+            layers.push(vectorLayer)
+            return vectorLayer;
+        }
+
+        // create map and add layers
+        var map;
+    </script>
+</body>
+
+</html>
+
+</html>

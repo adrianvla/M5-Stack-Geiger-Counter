@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang=\ "en\">
+
+<head>
+    <meta charset=\ "UTF-8\">
+    <meta http-equiv=\ "X-UA-Compatible\" content=\ "IE=edge\">
+    <meta name=\ "viewport\" content=\ "width=device-width,initial-scale=1\">
+    <title>Geiger Counter</title>
+    <script src=\ "jquery.js\"></script>
+    <link rel=\ "stylesheet\" href=\ "ol.css\" type=\ "text/css\">
+    <style type=\ "text/css\">
+        #map,
+        body,
+        html {
+            width: 100%;
+            height: calc(100% - 50px);
+            margin: 0
+        }
+        
+        body {
+            overflow: hidden
+        }
+        
+        .header {
+            width: 100%;
+            height: 50px;
+            display: flex;
+            flex-direction: row
+        }
+        
+        .item {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 10px
+        }
+    </style>
+    <script src=\ "ol.js\"></script>
+</head>
+
+<body>
+    <div class=\ "header\">
+        <div class=\ "item\"><a href=\ "worldmap\">WorldMap (online)</a></div>
+        <div class=\ "item\"><a href=\ "givedata\">Give Data to the WorldMap (online)</a></div>
+    </div>
+    <div id=\ "map\" class=\ "map\"></div>
+    <script>
+        var dev = true;
+        if (!dev) {
+            setInterval(function() {
+                fetch('rad').then(response => response.json()).then(function(data) {
+                    console.log(data);
+                    var dat = JSON.parse(localStorage.getItem('raddata'));
+                    dat[String(data.latitude) + '_' + String(data.longitude)] = {
+                        level: data.rad
+                    };
+                    localStorage.setItem('raddata', dat)
+                })
+            }, 1000)
+        }
+        $(document).ready(function() {});
+        $(document).ready(function() {
+            drawMap()
+        });
+        async function drawMap() {
+            if (window.localStorage.getItem('raddata') != null) {
+                var r = JSON.parse(window.localStorage.getItem('raddata'));
+                Object.keys(r).forEach(function(key, i) {
+                    drawFeature(urntgToColor(r[key].level), new ol.Feature({
+                        geometry: new ol.geom.Point(ol.proj.fromLonLat([key.split('_')[1], key.split('_')[0]]))
+                    }), 5)
+                })
+            }
+            $('#map').text('');
+            map = new ol.Map({
+                target: 'map',
+                layers: layers,
+                view: new ol.View({
+                    center: ol.proj.fromLonLat([0, 0]),
+                    zoom: 3
+                })
+            })
+        }
+
+        function rndColor() {
+            var rnd = Math.random;
+            var d = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 'A', 'B', 'C', 'D', 'E', 'F'];
+            var o = [];
+            for (var i = 0; i < 6; i += 1) {
+                o.push(d[Math.floor(rnd() * 16)])
+            }
+            return '#' + o.join('')
+        }
+
+        function urntgToColor(urntg) {
+            var red = 125;
+            var green = 10;
+            if (urntg <= green) {
+                urntg = 0
+            } else {
+                urntg = urntg - green
+            }
+            var colornone = 125;
+            var hslc = colornone - ((urntg / (red - green)) * colornone);
+            return 'hsla(' + hslc + ', 100%, 50%, 0.5)'
+        }
+        var layers = [];
+        layers.push(new ol.layer.Tile({
+            source: new ol.source.OSM()
+        }));
+        const getRandomNumber = function(min, ref) {
+            return Math.random() * ref + min
+        };
+        var vectorLayer;
+
+        function drawFeature(color, feature, radius) {
+            var features = [];
+            features.push(feature);
+            const vectorSource = new ol.source.Vector({
+                features
+            });
+            vectorLayer = new ol.layer.Vector({
+                source: vectorSource,
+                style: new ol.style.Style({
+                    image: new ol.style.Circle({
+                        radius: radius,
+                        fill: new ol.style.Fill({
+                            color: color
+                        })
+                    })
+                })
+            });
+            layers.push(vectorLayer);
+            return vectorLayer
+        }
+        var map;
+    </script>
+</body>
+
+</html>

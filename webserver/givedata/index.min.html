@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Geiger Counter</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.2.1/css/ol.css" type="text/css">
+    <style type="text/css">
+        #map,
+        body,
+        html {
+            width: 100%;
+            height: calc(100% - 50px);
+            margin: 0
+        }
+        
+        .header {
+            width: 100%;
+            height: 50px;
+            display: flex;
+            flex-direction: row
+        }
+        
+        .item {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 10px
+        }
+        
+        .info {
+            display: flex;
+            justify-content: center;
+            align-items: center
+        }
+        
+        .info>div {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center
+        }
+        
+        .givedata {
+            font-size: 25px;
+            font-family: Arial;
+            color: #eee;
+            background-color: #1e45c5;
+            padding: 5px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all .2s ease-out
+        }
+        
+        .givedata:hover {
+            font-size: 30px;
+            background-color: #1a3ba5
+        }
+        
+        .i {
+            color: #aaa
+        }
+        
+        .stop {
+            position: absolute;
+            top: 0;
+            display: none;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            z-index: 1000;
+            pointer-events: all;
+            background: #1717177F
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.2.1/build/ol.js"></script>
+</head>
+
+<body>
+    <div class="stop"></div>
+    <div class="header">
+        <div class="item"><a href="../">Offline Mode</a></div>
+        <div class="item"><a href="worldmap">WorldMap (online)</a></div>
+    </div>
+    <div id="map" class="map"></div>
+    <div class="info">
+        <div class=""><span class="givedata">Give Data</span> <span class="i">If you click this, you will send everywhere you have been and have measured radiation.</span>
+            <li><input type="checkbox" id="select_all"> Select all</li>
+            <ul id="s"></ul>
+        </div>
+    </div>
+    <script src="https://www.gstatic.com/firebasejs/8.8.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.8.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.8.1/firebase-analytics.js"></script>
+    <script>
+        var firebaseConfig = {
+            apiKey: "AIzaSyAXm8Er6N-HIxOK-2g9B8G4vYlaNzE3DjU",
+            authDomain: "geiger-counter-15488.firebaseapp.com",
+            projectId: "geiger-counter-15488",
+            storageBucket: "geiger-counter-15488.appspot.com",
+            messagingSenderId: "295372024990",
+            appId: "1:295372024990:web:4d4dded6f4f2bf007adf8f",
+            measurementId: "G-8K3161TLLJ"
+        };
+        var dev = true;
+        if (!dev) {
+            setInterval(function() {
+                fetch('rad').then(response => response.json()).then(function(data) {
+                    console.log(data);
+                    var dat = JSON.parse(localStorage.getItem('raddata'));
+                    dat[String(data.latitude) + '_' + String(data.longitude)] = {
+                        level: data.rad
+                    };
+                    localStorage.setItem('raddata', dat)
+                })
+            }, 1000)
+        }
+
+        function getCheckedBoxes(chkboxName) {
+            var checkboxes = document.getElementsByClassName(chkboxName);
+            var checkboxesChecked = [];
+            for (var i = 0; i < checkboxes.length; i += 1) {
+                if (checkboxes[i].checked) {
+                    checkboxesChecked.push(checkboxes[i])
+                }
+            }
+            return checkboxesChecked.length > 0 ? checkboxesChecked : null
+        }
+        $('.givedata').on('click', async function() {
+            $('.stop').css('display', 'flex');
+            var chch = getCheckedBoxes('checkbox');
+            if (chch == null) {
+                alert('Check at least one')
+            } else {
+                await chch.forEach(async function(el, i) {
+                    var y = $(el).attr('value').split('_');
+                    var raddata = JSON.parse(localStorage.getItem('raddata'));
+                    await db.collection("radiation").doc(String(y[0]) + '_' + String(y[1])).set({
+                        level: raddata[String(y[0]) + '_' + String(y[1])].level
+                    });
+                    if (chch.length - 1 == i) {
+                        alert('Success!');
+                        window.location = '../'
+                    }
+                })
+            }
+        });
+        $(document).ready(function() {
+            $(document).ready(function() {
+                $('#select_all').on('click', function() {
+                    if (this.checked) {
+                        $('.checkbox').each(function() {
+                            this.checked = true
+                        })
+                    } else {
+                        $('.checkbox').each(function() {
+                            this.checked = false
+                        })
+                    }
+                });
+                $('.checkbox').on('click', function() {
+                    if ($('.checkbox:checked').length == $('.checkbox').length) {
+                        $('#select_all').prop('checked', true)
+                    } else {
+                        $('#select_all').prop('checked', false)
+                    }
+                })
+            })
+        });
+        $(document).ready(function() {
+            Object.keys(radd).forEach(function(key, i) {
+                var rn = Math.floor(Math.random() * 10000);
+                $('#s').append('<li><input type="checkbox" class="checkbox ' + rn + '" value="' + key.split('_')[0] + '_' + key.split('_')[1] + '" />' + key.split('_')[0] + ' ' + key.split('_')[1] + '</li>');
+                $('.' + String(rn)).on('click', function() {
+                    var y = $(this).attr('value').split('_');
+                    drawMap(y[0], y[1], 15)
+                });
+                drawFeature(urntgToColor(radd[key].level), new ol.Feature({
+                    geometry: new ol.geom.Point(ol.proj.fromLonLat([key.split('_')[1], key.split('_')[0]]))
+                }), 5)
+            });
+            map = new ol.Map({
+                target: 'map',
+                layers: layers,
+                view: new ol.View({
+                    center: ol.proj.fromLonLat([0, 0]),
+                    zoom: 3
+                })
+            })
+        });
+        firebase.initializeApp(firebaseConfig);
+        firebase.analytics();
+        var db = firebase.firestore();
+        var radd = JSON.parse(localStorage.getItem('raddata'));
+        async function drawMap(lat, lon, zoom) {
+            if (!lat) {
+                lat = 0
+            }
+            if (!lon) {
+                lon = 0
+            }
+            if (!zoom) {
+                zoom = 3
+            }
+            if (window.localStorage.getItem('raddata') != null) {
+                var r = JSON.parse(window.localStorage.getItem('raddata'));
+                Object.keys(r).forEach(function(key, i) {
+                    drawFeature(urntgToColor(r[key].level), new ol.Feature({
+                        geometry: new ol.geom.Point(ol.proj.fromLonLat([key.split('_')[1], key.split('_')[0]]))
+                    }), 5)
+                })
+            }
+            $('#map').text('');
+            map = new ol.Map({
+                target: 'map',
+                layers: layers,
+                view: new ol.View({
+                    center: ol.proj.fromLonLat([lon, lat]),
+                    zoom: zoom
+                })
+            })
+        }
+
+        function rndColor() {
+            var rnd = Math.random;
+            var d = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 'A', 'B', 'C', 'D', 'E', 'F'];
+            var o = [];
+            for (var i = 0; i < 6; i += 1) {
+                o.push(d[Math.floor(rnd() * 16)])
+            }
+            return '#' + o.join('')
+        }
+
+        function urntgToColor(urntg) {
+            var red = 125;
+            var green = 10;
+            if (urntg <= green) {
+                urntg = 0
+            } else {
+                urntg = urntg - green
+            }
+            var colornone = 125;
+            var hslc = colornone - ((urntg / (red - green)) * colornone);
+            return 'hsla(' + hslc + ', 100%, 50%, 0.5)'
+        }
+        var layers = [];
+        layers.push(new ol.layer.Tile({
+            source: new ol.source.OSM()
+        }));
+        const getRandomNumber = function(min, ref) {
+            return Math.random() * ref + min
+        };
+        var vectorLayer;
+
+        function drawFeature(color, feature, radius) {
+            var features = [];
+            features.push(feature);
+            const vectorSource = new ol.source.Vector({
+                features
+            });
+            vectorLayer = new ol.layer.Vector({
+                source: vectorSource,
+                style: new ol.style.Style({
+                    image: new ol.style.Circle({
+                        radius: radius,
+                        fill: new ol.style.Fill({
+                            color: color
+                        })
+                    })
+                })
+            });
+            layers.push(vectorLayer);
+            return vectorLayer
+        }
+        var map;
+    </script>
+</body>
+
+</html>
