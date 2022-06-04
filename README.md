@@ -4,8 +4,8 @@ This is a geiger counter Built on M5Stack
 
 ## How to use
 
-Connect to M5STACK_SETUP wifi network
-Go to 192.168.4.1 on your device
+Connect to M5STACK_SETUP wifi network <br>
+Go to 192.168.4.1 on your device <br>
 And Voila
  
 For now it counts the A button presses
